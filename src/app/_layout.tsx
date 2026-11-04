@@ -1,13 +1,14 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { useColorScheme } from 'react-native';
 
-import AppTabs from '@/components/app-tabs';
-
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AppTabs />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="add-climb" options={{ title: 'Add a Climb' }} />
+      </Stack>
     </ThemeProvider>
   );
 }

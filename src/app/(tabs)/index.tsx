@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,8 +21,7 @@ export default function HomeScreen() {
 
         <Pressable
           accessibilityRole="button"
-          // TODO: navigate to the add climb flow once it exists.
-          onPress={() => {}}
+          onPress={() => router.push('/add-climb')}
           style={({ pressed }) => [
             styles.addButton,
             { backgroundColor: theme.primary },
