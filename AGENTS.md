@@ -1,5 +1,30 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## Project
+
+Tickmark lets climbers record new rock climbs and submit them to [OpenBeta](https://openbeta.io).
+
+### Platforms: iOS and Android only
+
+- There is no web target. Do not add `.web.tsx`/`.web.ts` files, web-only CSS, `react-native-web`, `react-dom`, or `web` config in `app.json`.
+- Cross-platform means iOS and Android. Use `Platform.OS === 'ios' | 'android'` checks or `.ios.tsx`/`.android.tsx` files when behavior must differ.
+
+### Offline first
+
+Users usually record climbs at the crag, where they often have no signal. Assume the device is offline while data is being collected.
+
+- Every data-entry flow (drafting a climb, adding photos, editing, saving) must work fully offline. Never block the UI on a network request or show an error just because the device is offline.
+- Persist user input to on-device storage as it is entered so nothing is lost if the app is closed or killed.
+- Store photos as local files and reference them by local URI until upload.
+- Network access is only needed to send data out (e.g. submitting to OpenBeta). Queue submissions locally and send them when a connection is available. Make retries safe so a submission is never duplicated or lost, and show the user each item's sync status (draft, pending, submitted, failed).
+- Treat remote data (e.g. OpenBeta areas or grades) as an optional cache: read from local storage first and refresh in the background when online.
+
+### Prefer Expo
+
+- When a need is covered by an Expo SDK package (`expo-*`), use it instead of a third-party library. Examples: `expo-image`, `expo-image-picker`, `expo-file-system`, `expo-sqlite`, `expo-network`, `expo-location`.
+- Follow Expo's conventions and recommendations (Expo Router, Continuous Native Generation, config plugins, EAS) rather than custom or bare React Native setups.
+- Reach for a non-Expo library only when no Expo package fits, and prefer ones listed as compatible in the Expo docs.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
@@ -38,4 +63,4 @@ Docs: https://docs.expo.dev/eas/index.md
 
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+- Check your available skills before adding dependencies, and follow "Prefer Expo" above. Docs: https://docs.expo.dev/versions/latest/index.md
