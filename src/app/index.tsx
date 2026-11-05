@@ -7,7 +7,7 @@ import { KIND_LABELS } from '@/climb/labels';
 import { StatusChip } from '@/components/status-chip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { createDraft } from '@/db/climbs';
 import { useClimbs, type ClimbListItem } from '@/hooks/use-climb';
 import { useTheme } from '@/hooks/use-theme';
@@ -24,7 +24,7 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
         <ThemedText type="subtitle">Tickmark</ThemedText>
 
         <FlatList
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.four,
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
+    paddingBottom: Spacing.three,
     maxWidth: MaxContentWidth,
   },
   list: {

@@ -23,8 +23,8 @@ export default function RootLayout() {
       onInit={migrateDbIfNeeded}
       options={{ enableChangeListener: true }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="climb/[id]/setup" options={{ title: 'Add a climb' }} />
           <Stack.Screen name="climb/[id]/area" options={{ title: 'Where is it?' }} />
           <Stack.Screen name="climb/[id]/index" options={{ title: 'Climb' }} />
