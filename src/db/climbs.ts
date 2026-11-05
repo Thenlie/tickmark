@@ -123,10 +123,19 @@ function toSqlValue(value: unknown): string | number | null {
   return value as string | number;
 }
 
-/** Starts a new draft, reusing the grade system of the user's last climb of the same kind. */
+/**
+ * A draft nobody has edited yet. Every user edit bumps `updated_at`, so a climb whose
+ * `updated_at` still equals `created_at` holds nothing the user chose.
+ */
+const UNTOUCHED = 'updated_at = created_at';
+
+/**
+ * Starts a new draft, reusing the grade system of the user's last climb of the same kind.
+ * It stays hidden from the list until the user edits it.
+ */
 export async function createDraft(db: SQLiteDatabase, kind: Kind = 'rope'): Promise<string> {
   const last = await db.getFirstAsync<{ kind: string; grade_system: string }>(
-    'SELECT kind, grade_system FROM climbs ORDER BY updated_at DESC LIMIT 1',
+    `SELECT kind, grade_system FROM climbs WHERE NOT (${UNTOUCHED}) ORDER BY updated_at DESC LIMIT 1`,
   );
   const startKind = (last?.kind as Kind | undefined) ?? kind;
   const gradeSystem = last?.grade_system ?? defaultSystem(startKind, null);
@@ -154,7 +163,9 @@ export async function getClimb(db: SQLiteDatabase, id: string): Promise<Climb | 
 }
 
 export async function listClimbs(db: SQLiteDatabase): Promise<Climb[]> {
-  const rows = await db.getAllAsync<ClimbRow>('SELECT * FROM climbs ORDER BY updated_at DESC');
+  const rows = await db.getAllAsync<ClimbRow>(
+    `SELECT * FROM climbs WHERE NOT (${UNTOUCHED}) ORDER BY updated_at DESC`,
+  );
   return rows.map(toClimb);
 }
 
@@ -168,6 +179,11 @@ export async function updateClimb(db: SQLiteDatabase, id: string, patch: ClimbPa
     Date.now(),
     id,
   );
+}
+
+/** Removes drafts that were opened but never edited. */
+export async function deleteUntouchedDrafts(db: SQLiteDatabase): Promise<void> {
+  await db.runAsync(`DELETE FROM climbs WHERE ${UNTOUCHED}`);
 }
 
 export async function deleteClimb(db: SQLiteDatabase, id: string): Promise<void> {

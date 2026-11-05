@@ -12,7 +12,7 @@ import { StatusChip } from '@/components/status-chip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { createDraft } from '@/db/climbs';
+import { createDraft, deleteUntouchedDrafts } from '@/db/climbs';
 import { useClimbs, type ClimbListItem } from '@/hooks/use-climb';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -22,6 +22,7 @@ export default function HomeScreen() {
   const climbs = useClimbs();
 
   const addClimb = async () => {
+    await deleteUntouchedDrafts(db);
     const id = await createDraft(db);
     router.push({ pathname: '/climb/[id]/setup', params: { id } });
   };
