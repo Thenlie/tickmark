@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
 import { useEffect } from 'react';
 import { AppState, useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { flushAll } from '@/db/autosave';
 import { migrateDbIfNeeded } from '@/db/migrations';
@@ -18,19 +19,21 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <SQLiteProvider
-      databaseName="tickmark.db"
-      onInit={migrateDbIfNeeded}
-      options={{ enableChangeListener: true }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="climb/[id]/setup" options={{ title: 'Add a climb' }} />
-          <Stack.Screen name="climb/[id]/area" options={{ title: 'Where is it?' }} />
-          <Stack.Screen name="climb/[id]/index" options={{ title: 'Climb' }} />
-          <Stack.Screen name="climb/[id]/pitch/[n]" options={{ title: 'Pitch' }} />
-        </Stack>
-      </ThemeProvider>
-    </SQLiteProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SQLiteProvider
+        databaseName="tickmark.db"
+        onInit={migrateDbIfNeeded}
+        options={{ enableChangeListener: true }}>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="climb/[id]/setup" options={{ title: 'Add a climb' }} />
+            <Stack.Screen name="climb/[id]/area" options={{ title: 'Where is it?' }} />
+            <Stack.Screen name="climb/[id]/index" options={{ title: 'Climb' }} />
+            <Stack.Screen name="climb/[id]/pitch/[n]" options={{ title: 'Pitch' }} />
+          </Stack>
+        </ThemeProvider>
+      </SQLiteProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -1,9 +1,13 @@
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { SymbolView } from 'expo-symbols';
+import { useRef } from 'react';
 import { FlatList, Pressable, StyleSheet } from 'react-native';
+import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { KIND_LABELS } from '@/climb/labels';
+import { confirmDeleteClimb } from '@/components/confirm-delete-climb';
 import { StatusChip } from '@/components/status-chip';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -33,6 +37,13 @@ export default function HomeScreen() {
           data={climbs ?? []}
           keyExtractor={(item) => item.climb.id}
           renderItem={({ item }) => <ClimbRow item={item} />}
+          ListHeaderComponent={
+            climbs?.length ? (
+              <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
+                NOT YET ON OPENBETA
+              </ThemedText>
+            ) : undefined
+          }
           ListEmptyComponent={
             climbs ? (
               <ThemedText themeColor="textSecondary" style={styles.empty}>
@@ -57,19 +68,47 @@ export default function HomeScreen() {
 
 function ClimbRow({ item }: { item: ClimbListItem }) {
   const { climb, area, status } = item;
+  const theme = useTheme();
+  const db = useSQLiteContext();
+  const swipeable = useRef<SwipeableMethods>(null);
+
+  // Slide back closed on cancel; on delete the row leaves the list.
+  const confirmDelete = () => confirmDeleteClimb(db, climb.id, { onCancel: () => swipeable.current?.close() });
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => router.push({ pathname: '/climb/[id]', params: { id: climb.id } })}
-      style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView type="backgroundElement" style={styles.row}>
-        <ThemedText type="default">{climb.name.trim() || 'Untitled climb'}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {[KIND_LABELS[climb.kind], climb.grade, area?.name ?? 'No area yet'].filter(Boolean).join(' · ')}
-        </ThemedText>
-        <StatusChip status={status} />
-      </ThemedView>
-    </Pressable>
+    <Swipeable
+      ref={swipeable}
+      friction={2}
+      rightThreshold={40}
+      overshootRight={false}
+      containerStyle={styles.swipeContainer}
+      renderRightActions={() => (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Delete climb"
+          onPress={confirmDelete}
+          style={({ pressed }) => [styles.deleteAction, { backgroundColor: theme.danger }, pressed && styles.pressed]}>
+          <SymbolView name={{ ios: 'trash', android: 'delete' }} size={24} tintColor={theme.onPrimary} />
+        </Pressable>
+      )}>
+      <Pressable
+        accessibilityRole="button"
+        // Swiping isn't reachable with a screen reader, so offer delete as an action too.
+        accessibilityActions={[{ name: 'delete', label: 'Delete climb' }]}
+        onAccessibilityAction={(e) => e.nativeEvent.actionName === 'delete' && confirmDelete()}
+        onPress={() => router.push({ pathname: '/climb/[id]', params: { id: climb.id } })}>
+        {/* Darken instead of fading: an opacity change would show the Delete button behind the card. */}
+        {({ pressed }) => (
+          <ThemedView type={pressed ? 'backgroundSelected' : 'backgroundElement'} style={styles.row}>
+            <ThemedText type="default">{climb.name.trim() || 'Untitled climb'}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {[KIND_LABELS[climb.kind], climb.grade, area?.name ?? 'No area yet'].filter(Boolean).join(' · ')}
+            </ThemedText>
+            <StatusChip status={status} />
+          </ThemedView>
+        )}
+      </Pressable>
+    </Swipeable>
   );
 }
 
@@ -94,14 +133,25 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingBottom: Spacing.three,
   },
+  sectionTitle: {
+    letterSpacing: 0.6,
+  },
   empty: {
     paddingVertical: Spacing.five,
     textAlign: 'center',
   },
+  swipeContainer: {
+    borderRadius: Spacing.three,
+    overflow: 'hidden',
+  },
   row: {
     gap: Spacing.one,
     padding: Spacing.three,
-    borderRadius: Spacing.three,
+  },
+  deleteAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.four,
   },
   addButton: {
     alignSelf: 'stretch',

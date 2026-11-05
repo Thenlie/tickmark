@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fieldsFor } from '@/climb/fields';
@@ -20,6 +20,7 @@ import { hardestPitchGrade, totalPitchLength } from '@/climb/pitches';
 import { findSimilarName } from '@/climb/similar-name';
 import type { GradeSystem } from '@/climb/types';
 import { Stepper } from '@/components/choice';
+import { confirmDeleteClimb } from '@/components/confirm-delete-climb';
 import { DraftInput, FormField, NumberInput, SectionTitle, SelectInput } from '@/components/form';
 import { PhotoStrip } from '@/components/photo-strip';
 import { PositionCard } from '@/components/position-card';
@@ -29,8 +30,7 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { listAreaClimbs, type AreaClimb } from '@/db/areas';
 import { flushAll, scheduleClimbUpdate } from '@/db/autosave';
-import { deleteClimb, setPitchCount, updateClimb, type ClimbPatch } from '@/db/climbs';
-import { deleteClimbPhotoFiles } from '@/db/photos';
+import { setPitchCount, updateClimb, type ClimbPatch } from '@/db/climbs';
 import { useClimb, type ClimbBundle } from '@/hooks/use-climb';
 import { useDbQuery } from '@/hooks/use-db-query';
 import { useTheme } from '@/hooks/use-theme';
@@ -92,19 +92,7 @@ function DetailsForm({ bundle }: { bundle: ClimbBundle }) {
     await setPitchCount(db, climb, count);
   };
 
-  const confirmDelete = () =>
-    Alert.alert('Delete this climb?', 'Its details and photos will be removed from this phone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteClimb(db, climb.id);
-          deleteClimbPhotoFiles(climb.id);
-          router.back();
-        },
-      },
-    ]);
+  const confirmDelete = () => confirmDeleteClimb(db, climb.id, { onDeleted: () => router.back() });
 
   return (
     <ScrollView
