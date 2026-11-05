@@ -28,6 +28,20 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Tickmark uses your location to record where a climb is and to suggest nearby crags."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Tickmark lets you attach photos of a climb.",
+          "cameraPermission": "Tickmark lets you take photos of a climb."
+        }
       ]
     ],
     "experiments": {
