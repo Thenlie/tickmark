@@ -4,7 +4,8 @@ import { describe, expect, it } from '@jest/globals';
 import { distanceM } from '../geo';
 import { changeKind, defaultSystem, GRADE_SCALES, gradeRank, isValidGrade } from '../grades';
 import { hardestPitchGrade, totalPitchLength } from '../pitches';
-import { computeStatus } from '../readiness';
+import { toClimbChange } from '../../openbeta/climb-input';
+import { computeStatus, displayStatus } from '../readiness';
 import { findSimilarName, levenshtein, normalizeName } from '../similar-name';
 import type { Area, Climb, Pitch } from '../types';
 
@@ -32,6 +33,9 @@ const baseClimb: Climb = {
   lng: null,
   gpsAccuracyM: null,
   gpsAt: null,
+  syncState: 'local',
+  syncError: null,
+  submittedVersion: null,
 };
 
 const leafArea: Area = {
@@ -162,5 +166,49 @@ describe('distanceM', () => {
   it('is about 111 km per degree of latitude', () => {
     expect(distanceM(0, 0, 1, 0)).toBeGreaterThan(110_000);
     expect(distanceM(0, 0, 1, 0)).toBeLessThan(112_000);
+  });
+});
+
+describe('send readiness', () => {
+  it('blocks a grade in a scale the crag does not use', () => {
+    const s = computeStatus({ ...baseClimb, gradeSystem: 'french', grade: '6a' }, [], leafArea);
+    expect(s.status).toBe('draft');
+    expect(s.missing).toEqual(["grade in YDS (this area's scale)"]);
+  });
+
+  it('shows edits made after an accepted send', () => {
+    const ready = computeStatus(baseClimb, [], leafArea);
+    const sent = { ...baseClimb, syncState: 'submitted' as const, submittedVersion: 5, updatedAt: 5 };
+    expect(displayStatus(sent, ready)).toBe('submitted');
+    expect(displayStatus({ ...sent, updatedAt: 6 }, ready)).toBe('edited');
+    expect(displayStatus({ ...baseClimb, syncState: 'pending' }, ready)).toBe('pending');
+  });
+});
+
+describe('toClimbChange', () => {
+  const ids = () => {
+    let n = 0;
+    return () => `p${++n}`;
+  };
+
+  it('reuses the local id and leaves out empty text', () => {
+    const change = toClimbChange({ ...baseClimb, description: '  ', fa: ' Jo, 1999 ' }, [], ids());
+    expect(change).toMatchObject({ id: 'c1', name: 'Chalk Dust Tango', grade: '5.10b', fa: 'Jo, 1999' });
+    expect(change.description).toBeUndefined();
+    expect(change.pitches).toBeUndefined();
+    expect(change.disciplines).toMatchObject({ sport: true, trad: false, bouldering: false });
+  });
+
+  it('sends pitch grades in the climb scale', () => {
+    const change = toClimbChange(baseClimb, [pitch(1, '5.8'), pitch(2, '5.10b')], ids());
+    expect(change.pitches).toEqual([
+      expect.objectContaining({ id: 'p1', parentId: 'c1', pitchNumber: 1, grades: { yds: '5.8' } }),
+      expect.objectContaining({ id: 'p2', parentId: 'c1', pitchNumber: 2, grades: { yds: '5.10b' } }),
+    ]);
+  });
+
+  it('only sends bolts for sport routes', () => {
+    expect(toClimbChange({ ...baseClimb, bolts: 8 }, [], ids()).boltsCount).toBe(8);
+    expect(toClimbChange({ ...baseClimb, disciplines: ['trad'], bolts: 8 }, [], ids()).boltsCount).toBeUndefined();
   });
 });

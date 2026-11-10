@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { FlatList, Pressable, StyleSheet } from 'react-native';
+import { Pressable, SectionList, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { displayStatus } from '@/climb/readiness';
 import { ClimbCard } from '@/components/climb-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -15,6 +16,12 @@ export default function HomeScreen() {
   const theme = useTheme();
   const db = useSQLiteContext();
   const climbs = useClimbs();
+  const onOpenBeta = (climbs ?? []).filter((c) => displayStatus(c.climb, c.status) === 'submitted');
+  const notYet = (climbs ?? []).filter((c) => displayStatus(c.climb, c.status) !== 'submitted');
+  const sections = [
+    { title: 'NOT YET ON OPENBETA', data: notYet },
+    { title: 'ON OPENBETA', data: onOpenBeta },
+  ].filter((s) => s.data.length > 0);
 
   const addClimb = async () => {
     await deleteUntouchedDrafts(db);
@@ -27,19 +34,18 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
         <ThemedText type="subtitle">Tickmark</ThemedText>
 
-        <FlatList
+        <SectionList
           style={styles.list}
           contentContainerStyle={styles.listContent}
-          data={climbs ?? []}
+          sections={sections}
+          stickySectionHeadersEnabled={false}
           keyExtractor={(item) => item.climb.id}
           renderItem={({ item }) => <ClimbCard item={item} />}
-          ListHeaderComponent={
-            climbs?.length ? (
-              <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
-                NOT YET ON OPENBETA
-              </ThemedText>
-            ) : undefined
-          }
+          renderSectionHeader={({ section }) => (
+            <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
+              {section.title}
+            </ThemedText>
+          )}
           ListEmptyComponent={
             climbs ? (
               <ThemedText themeColor="textSecondary" style={styles.empty}>
@@ -85,6 +91,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     letterSpacing: 0.6,
+    paddingTop: Spacing.two,
   },
   empty: {
     paddingVertical: Spacing.five,

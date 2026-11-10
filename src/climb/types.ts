@@ -20,6 +20,12 @@ export type GradeSystem = 'yds' | 'french' | 'uiaa' | 'ewbank' | 'vscale' | 'fon
 /** OpenBeta `SafetyEnum`, minus UNSPECIFIED (stored as null). */
 export type Safety = 'PG' | 'PG13' | 'runout' | 'R' | 'X';
 
+/**
+ * Where a climb is in the trip to OpenBeta. `local` has never been queued; `pending` is
+ * queued and waiting for a connection; `failed` was rejected and needs the user.
+ */
+export type SyncState = 'local' | 'pending' | 'submitted' | 'failed';
+
 export type Climb = {
   id: string;
   createdAt: number;
@@ -44,6 +50,11 @@ export type Climb = {
   lng: number | null;
   gpsAccuracyM: number | null;
   gpsAt: number | null;
+  syncState: SyncState;
+  /** Why the last send was rejected. Only set when `syncState` is `failed`. */
+  syncError: string | null;
+  /** `updatedAt` of the version OpenBeta accepted, so later edits show as unsent. */
+  submittedVersion: number | null;
 };
 
 export type Pitch = {

@@ -55,3 +55,12 @@ export type AreaQueryResult = {
 export type SearchAreasResult = { areas: RemoteArea[] };
 export type CragsNearResult = { cragsNear: { crags: RemoteArea[] | null }[] };
 export type CountriesResult = { countries: RemoteArea[] };
+
+/** Adds or updates climbs in a leaf area. A climb whose `id` OpenBeta already has is updated. */
+export const UPDATE_CLIMBS_MUTATION = `
+  mutation UpdateClimbs($input: UpdateClimbsInput) {
+    updateClimbs(input: $input)
+  }
+`;
+
+export type UpdateClimbsResult = { updateClimbs: string[] | null };

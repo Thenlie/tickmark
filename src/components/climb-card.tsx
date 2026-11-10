@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { KIND_LABELS } from '@/climb/labels';
-import type { ClimbStatus } from '@/climb/readiness';
+import { displayStatus, statusLabel, type DisplayStatus } from '@/climb/readiness';
 import type { Area, Climb } from '@/climb/types';
 import { confirmDeleteClimb } from '@/components/confirm-delete-climb';
 import { ThemedText } from '@/components/themed-text';
@@ -36,7 +36,7 @@ export function ClimbCard({ item }: { item: ClimbListItem }) {
       <Pressable
         accessibilityRole="button"
         // The status is only an icon, so spell the whole card out for screen readers.
-        accessibilityLabel={[climbTitle(climb), climbDetails(climb), areaPath(area), statusLabel(status)].join(', ')}
+        accessibilityLabel={[climbTitle(climb), climbDetails(climb), areaPath(area), statusLabel(climb, status)].join(', ')}
         // Swiping isn't reachable with a screen reader, so offer delete as an action too.
         accessibilityActions={[{ name: 'delete', label: 'Delete climb' }]}
         onAccessibilityAction={(e) => e.nativeEvent.actionName === 'delete' && confirmDelete()}
@@ -48,7 +48,7 @@ export function ClimbCard({ item }: { item: ClimbListItem }) {
               <ThemedText type="default" style={styles.title}>
                 {climbTitle(climb)}
               </ThemedText>
-              <StatusIcon status={status} />
+              <StatusIcon status={displayStatus(climb, status)} />
             </View>
             <InfoLine>{climbDetails(climb)}</InfoLine>
             <InfoLine icon={<PinIcon />}>{areaPath(area)}</InfoLine>
@@ -71,11 +71,6 @@ function areaPath(area: Area | null): string {
 /** "Boulder · V4" */
 function climbDetails(climb: Climb): string {
   return [KIND_LABELS[climb.kind], climb.grade].filter(Boolean).join(' · ');
-}
-
-/** "Ready to send" or "Draft, 2 missing" */
-function statusLabel(status: ClimbStatus): string {
-  return status.status === 'ready' ? 'Ready to send' : `Draft, ${status.missing.length} missing`;
 }
 
 function InfoLine({ icon, children }: { icon?: ReactNode; children: string }) {
@@ -101,14 +96,23 @@ function PinIcon() {
   );
 }
 
-function StatusIcon({ status }: { status: ClimbStatus }) {
+const STATUS_ICONS: Record<DisplayStatus, SymbolViewProps['name']> = {
+  draft: { ios: 'pencil.circle', android: 'edit' },
+  ready: { ios: 'checkmark.circle', android: 'check_circle' },
+  pending: { ios: 'clock', android: 'schedule' },
+  submitted: { ios: 'checkmark.circle.fill', android: 'cloud_done' },
+  edited: { ios: 'arrow.triangle.2.circlepath.circle', android: 'sync' },
+  failed: { ios: 'exclamationmark.circle.fill', android: 'error' },
+};
+
+function StatusIcon({ status }: { status: DisplayStatus }) {
   const theme = useTheme();
-  const ready = status.status === 'ready';
+  const tint = status === 'failed' ? theme.danger : status === 'draft' ? theme.textSecondary : theme.primary;
   return (
     <SymbolView
-      name={ready ? { ios: 'checkmark.circle.fill', android: 'check_circle' } : { ios: 'pencil.circle', android: 'edit' }}
+      name={STATUS_ICONS[status]}
       size={22}
-      tintColor={ready ? theme.primary : theme.textSecondary}
+      tintColor={tint}
       style={styles.statusIcon}
     />
   );

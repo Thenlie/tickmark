@@ -2,7 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { defaultSystem } from '@/climb/grades';
-import type { Climb, Discipline, Kind, Pitch } from '@/climb/types';
+import type { Climb, Discipline, Kind, Pitch, SyncState } from '@/climb/types';
 
 type ClimbRow = {
   id: string;
@@ -28,6 +28,9 @@ type ClimbRow = {
   lng: number | null;
   gps_accuracy_m: number | null;
   gps_at: number | null;
+  sync_state: string;
+  sync_error: string | null;
+  submitted_version: number | null;
 };
 
 type PitchRow = {
@@ -101,6 +104,9 @@ function toClimb(r: ClimbRow): Climb {
     lng: r.lng,
     gpsAccuracyM: r.gps_accuracy_m,
     gpsAt: r.gps_at,
+    syncState: r.sync_state as SyncState,
+    syncError: r.sync_error,
+    submittedVersion: r.submitted_version,
   };
 }
 
@@ -179,6 +185,36 @@ export async function updateClimb(db: SQLiteDatabase, id: string, patch: ClimbPa
     Date.now(),
     id,
   );
+}
+
+/*
+ * Sync state changes don't bump `updated_at`: they aren't edits, and `submitted_version`
+ * is compared against it to spot changes made after a send.
+ */
+
+/** Queues a climb for sending. Clears any earlier rejection so the user sees it retry. */
+export async function queueSubmission(db: SQLiteDatabase, id: string): Promise<void> {
+  await db.runAsync(`UPDATE climbs SET sync_state = 'pending', sync_error = NULL WHERE id = ?`, id);
+}
+
+export async function listPendingClimbIds(db: SQLiteDatabase): Promise<string[]> {
+  const rows = await db.getAllAsync<{ id: string }>(
+    `SELECT id FROM climbs WHERE sync_state = 'pending' ORDER BY updated_at`,
+  );
+  return rows.map((r) => r.id);
+}
+
+/** Records a send OpenBeta accepted. `version` is the `updatedAt` of the data that was sent. */
+export async function markSubmitted(db: SQLiteDatabase, id: string, version: number): Promise<void> {
+  await db.runAsync(
+    `UPDATE climbs SET sync_state = 'submitted', sync_error = NULL, submitted_version = ? WHERE id = ?`,
+    version,
+    id,
+  );
+}
+
+export async function markFailed(db: SQLiteDatabase, id: string, error: string): Promise<void> {
+  await db.runAsync(`UPDATE climbs SET sync_state = 'failed', sync_error = ? WHERE id = ?`, error, id);
 }
 
 /** Removes drafts that were opened but never edited. */

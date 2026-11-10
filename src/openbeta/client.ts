@@ -7,6 +7,7 @@ export class OpenBetaError extends Error {
   constructor(
     message: string,
     readonly kind: 'network' | 'http' | 'graphql',
+    readonly status?: number,
   ) {
     super(message);
   }
@@ -30,7 +31,7 @@ export async function gql<T>(query: string, variables: Record<string, unknown> =
   } finally {
     clearTimeout(timer);
   }
-  if (!res.ok) throw new OpenBetaError(`OpenBeta responded ${res.status}`, 'http');
+  if (!res.ok) throw new OpenBetaError(`OpenBeta responded ${res.status}`, 'http', res.status);
 
   const body = (await res.json()) as { data?: T; errors?: { message: string }[] };
   if (body.errors?.length) throw new OpenBetaError(body.errors[0].message, 'graphql');

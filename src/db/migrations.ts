@@ -71,6 +71,11 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (area_id, climb_id)
   );
   `,
+  `
+  ALTER TABLE climbs ADD COLUMN sync_state TEXT NOT NULL DEFAULT 'local';
+  ALTER TABLE climbs ADD COLUMN sync_error TEXT;
+  ALTER TABLE climbs ADD COLUMN submitted_version INTEGER;
+  `,
 ];
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {

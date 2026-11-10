@@ -2,17 +2,21 @@ import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import type { ClimbStatus } from '@/climb/readiness';
+import { displayStatus, statusLabel, type ClimbStatus } from '@/climb/readiness';
+import type { Climb } from '@/climb/types';
 import { Spacing } from '@/constants/theme';
 
-/** "Ready to send" or "Draft · 2 missing", plus a "No position" nudge. */
-export function StatusChip({ status }: { status: ClimbStatus }) {
-  const ready = status.status === 'ready';
+/** "Ready to send", "Draft · 2 missing" or the sync state, plus a "No position" nudge. */
+export function StatusChip({ climb, status }: { climb: Climb; status: ClimbStatus }) {
+  const shown = displayStatus(climb, status);
+  const highlight = shown !== 'draft';
   return (
     <ThemedView style={styles.row}>
-      <ThemedView type={ready ? 'backgroundSelected' : 'backgroundElement'} style={styles.chip}>
-        <ThemedText type="smallBold" themeColor={ready ? 'text' : 'textSecondary'}>
-          {ready ? 'Ready to send' : `Draft · ${status.missing.length} missing`}
+      <ThemedView type={highlight ? 'backgroundSelected' : 'backgroundElement'} style={styles.chip}>
+        <ThemedText
+          type="smallBold"
+          themeColor={shown === 'failed' ? 'danger' : highlight ? 'text' : 'textSecondary'}>
+          {shown === 'draft' ? `Draft · ${status.missing.length} missing` : statusLabel(climb, status)}
         </ThemedText>
       </ThemedView>
       {status.warnings.includes('no-position') && (

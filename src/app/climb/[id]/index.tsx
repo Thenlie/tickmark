@@ -17,6 +17,7 @@ import {
 } from '@/climb/grades';
 import { KIND_LABELS, SAFETY_LABELS, disciplineSummary } from '@/climb/labels';
 import { hardestPitchGrade, totalPitchLength } from '@/climb/pitches';
+import { displayStatus } from '@/climb/readiness';
 import { findSimilarName } from '@/climb/similar-name';
 import type { GradeSystem } from '@/climb/types';
 import { Stepper } from '@/components/choice';
@@ -90,6 +91,15 @@ function DetailsForm({ bundle }: { bundle: ClimbBundle }) {
   const changePitchCount = async (count: number) => {
     await flushAll();
     await setPitchCount(db, climb, count);
+  };
+
+  const shown = displayStatus(climb, status);
+  // Pending climbs send on their own; submitted ones only need sending again once edited.
+  const canSend = shown !== 'pending' && shown !== 'submitted';
+  const ready = status.status === 'ready';
+  const review = async () => {
+    await flushAll();
+    router.push({ pathname: '/climb/[id]/review', params: { id: climb.id } });
   };
 
   const confirmDelete = () => confirmDeleteClimb(db, climb.id, { onDeleted: () => router.back() });
@@ -331,13 +341,35 @@ function DetailsForm({ bundle }: { bundle: ClimbBundle }) {
         </FormField>
 
         <ThemedView style={styles.footer}>
-          <StatusChip status={status} />
+          <StatusChip climb={climb} status={status} />
+          {climb.syncState === 'failed' && climb.syncError && (
+            <ThemedText type="small" themeColor="danger">
+              OpenBeta said: {climb.syncError}
+            </ThemedText>
+          )}
           {status.missing.length > 0 && (
             <ThemedText type="small" themeColor="textSecondary">
               Still needed: {status.missing.join(', ')}. Saved on this phone either way.
             </ThemedText>
           )}
         </ThemedView>
+
+        {canSend && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !ready }}
+            disabled={!ready}
+            onPress={review}
+            style={({ pressed }) => [
+              styles.send,
+              { backgroundColor: ready ? theme.primary : theme.backgroundElement },
+              pressed && styles.pressed,
+            ]}>
+            <ThemedText type="smallBold" themeColor={ready ? 'onPrimary' : 'textSecondary'}>
+              {shown === 'edited' ? 'Review and send changes' : 'Review and send'}
+            </ThemedText>
+          </Pressable>
+        )}
 
         <Pressable accessibilityRole="button" onPress={confirmDelete} style={styles.delete}>
           <ThemedText type="small" themeColor="textSecondary">
@@ -372,6 +404,7 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.three,
   },
   footer: { gap: Spacing.two, marginTop: Spacing.two },
+  send: { alignItems: 'center', paddingVertical: Spacing.three, borderRadius: Spacing.three },
   delete: { alignItems: 'center', paddingVertical: Spacing.three },
   pressed: { opacity: 0.7 },
 });
