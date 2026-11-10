@@ -1,4 +1,6 @@
-const ENDPOINT = 'https://api.openbeta.io';
+// Local openbeta-graphql server only, set in .env.local. No production fallback so dev
+// builds can't write to the live API. TODO before release: point at https://api.openbeta.io.
+const ENDPOINT = process.env.EXPO_PUBLIC_OPENBETA_ENDPOINT;
 const TIMEOUT_MS = 8000;
 
 export class OpenBetaError extends Error {
@@ -12,6 +14,7 @@ export class OpenBetaError extends Error {
 
 /** Minimal GraphQL POST. Callers run it in the background and fall back to the cache on failure. */
 export async function gql<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
+  if (!ENDPOINT) throw new OpenBetaError('EXPO_PUBLIC_OPENBETA_ENDPOINT is not set', 'network');
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let res: Response;
